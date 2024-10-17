@@ -2,7 +2,7 @@
 ---@type table<string, number>
 local activeVehicles = {}
 
-lib.callback.register('lunar_garage:getOwnedVehicles', function(source, index, society)
+lib.callback.register('lunar_garage:getOwnedVehicles', function(source, index, society, home)
     local player = Framework.getPlayerFromId(source)
     if not player then return end
     
@@ -36,7 +36,7 @@ lib.callback.register('lunar_garage:getOwnedVehicles', function(source, index, s
         return vehicles
     else
         local vehicles = MySQL.query.await(Queries.getGarage, {
-            player:getIdentifier(), garage.Type
+            player:getIdentifier(), home and home.type or garage.Type
         })
 
         for _, vehicle in ipairs(vehicles) do
@@ -118,7 +118,7 @@ lib.callback.register('lunar_garage:getImpoundedVehicles', function(source, inde
     end
 end)
 
-lib.callback.register('lunar_garage:takeOutVehicle', function(source, index, plate, type)
+lib.callback.register('lunar_garage:takeOutVehicle', function(source, index, plate, type, home)
     local player = Framework.getPlayerFromId(source)
     if not player then return end
 
@@ -128,7 +128,7 @@ lib.callback.register('lunar_garage:takeOutVehicle', function(source, index, pla
 
     if vehicle then
         MySQL.update.await(Queries.setStoredVehicle, { 0, plate })
-        local garage = Config.Garages[index]
+        local garage = Config.Garages[index] or home
         local coords = garage.SpawnPosition
         local props = json.decode(vehicle.mods or vehicle.vehicle)
         local entity = Utils.createVehicle(props.model, coords, type)

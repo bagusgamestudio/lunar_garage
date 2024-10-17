@@ -41,9 +41,9 @@ end)
 
 function SpawnVehicle(args)
     ---@type integer, VehicleProperties
-    local index, props in args
+    local index, props, home in args
     
-    local garage = Config.Garages[index]
+    local garage = Config.Garages[index] or home
     
     if Config.SpawnpointCheck and lib.getClosestVehicle(garage.SpawnPosition.xyz, 3.0, false) then
         ShowNotification(locale('spawn_occupied'), 'error')
@@ -52,7 +52,7 @@ function SpawnVehicle(args)
 
     lib.requestModel(props.model)
     local type = getVehicleType(props.model)
-    local netId = lib.callback.await('lunar_garage:takeOutVehicle', false, index, props.plate, type)
+    local netId = lib.callback.await('lunar_garage:takeOutVehicle', false, index, props.plate, type, home)
     
     while not NetworkDoesEntityExistWithNetworkId(netId) do Wait(0) end
 
@@ -128,8 +128,8 @@ local function getFuelBarColor(fuel)
 end
 
 local function openGarageVehicles(args)
-    local index, society in args
-    local vehicles = lib.callback.await('lunar_garage:getOwnedVehicles', false, index, society)
+    local index, society, home in args
+    local vehicles = lib.callback.await('lunar_garage:getOwnedVehicles', false, index, society, home)
     
     if #vehicles == 0 then
         ShowNotification(society and locale('no_society_vehicles') or locale('no_owned_vehicles'), 'error')
@@ -159,7 +159,7 @@ local function openGarageVehicles(args)
                 ---@diagnostic disable-next-line: assign-type-mismatch
                 { label = locale('fuel'), value = class ~= 13 and fuelLevel .. '%' or locale('no_fueltank') }
             },
-            args = { index = index, props = props },
+            args = { index = index, props = props, home = home },
             onSelect = vehicle.state == 'in_garage' and SpawnVehicle or function()
                 if vehicle.state == 'out_garage' then
                     local coords = lib.callback.await('lunar_garage:getVehicleCoords', false, vehicle.plate)
@@ -183,6 +183,8 @@ local function openGarageVehicles(args)
 
     lib.showContext('garage_vehicles')
 end
+
+exports('openGarageVehicles', openGarageVehicles)
 
 local function openGarage(index)
     lib.registerContext({
@@ -239,6 +241,8 @@ local function saveVehicle(vehicle)
         ShowNotification(locale('not_your_vehicle'), 'error')
     end
 end
+
+exports('saveVehicle', saveVehicle)
 
 local function retrieveVehicle(args)
     ---@type integer, VehicleProperties
